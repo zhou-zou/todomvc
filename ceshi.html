@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>todomvc</title>
+  <script src="js/vendor/jquery-3.4.1.min.js"></script>
+  <link rel="stylesheet" href="css/todomvc.css">
+  <link rel="stylesheet" type="text/css" href="icon/todomvc/iconfont.css">
+</head>
+<body>
+<div class="container">
+  <h1>todos</h1>
+  <div class="title">
+    <input type="text" id="eventName" autofocus="" placeholder="What needs to be down?"></input>
+  </div>
+  <div class="content">
+    <label class="context"><p id="context">❯</p></label>
+    <ul id="content"></ul>
+  </div>
+  <div class="footer">
+    <span class="count"><strong id="strong">0</strong> items left</span>
+    <ul class="filters">
+      <li>
+        <button id="all">All</button>
+      </li>
+      <li>
+        <button id="active">Active</button>
+      </li>
+      <li>
+        <button id="completed">Completed</button>
+      </li>
+      <li>
+        <button id="clearAll">Clear Completed</button>
+      </li>
+    </ul>
+  </div>
+  <div class="bottom"></div>
+  <div class="bottom"></div>
+</div>
+
+<script type="text/javascript">
+  let i = 0; //底部的数量显示
+  let j = 0; //li的id增长数
+  let flag = false; //全选或反选
+  let arr = []; //添加到lcoalstorage中的值
+  let sign = "";//判断是否为已完成状态
+  window.onload = init();
+  window.addEventListener('keydown',addTodo);
+  document.getElementById("context").addEventListener('click',alterAll);
+  document.getElementById("all").addEventListener('click',getAll);
+  document.getElementById("active").addEventListener('click',getActive);
+  document.getElementById("completed").addEventListener('click',getCompleted);
+  document.getElementById("clearAll").addEventListener('click',clearCompleted);
+  document.getElementById("content").addEventListener('dblclick',alterItem);
+  document.getElementById("content").addEventListener('click',deleteItem);
+  document.getElementById("content").addEventListener('click',alterEvent);
+  //初始化
+  function init() {
+    if (localStorage.getItem("temp") !== null && localStorage.getItem("temp").length > 0) {
+      let item = localStorage.getItem("temp").split(",");
+      let content = document.getElementById('content');
+      arr = item;
+      for (j; j < item.length; j++) {
+        let li = document.createElement("li");
+        if (item[j].startsWith("true")) {
+          li.innerHTML = `
+                <div class="liclass" id=d`+ j + `>
+                    <label id=l`+ j + ` style="text-decoration: line-through;color: rgb(217, 217, 217);"><input  id=i` + j + ` type="checkbox" checked="checked"><i id="` + j + `" class="spot"></i>` + item[j].substring(4, item[j].length) + `</label>
+                    <textarea onblur="hideText(1,`+ j + `)"  id=t` + j + `>` + item[j].substring(4, item[j].length) + `</textarea>
+                    <button id=`+ j + ` class="delete" >x</button>
+                </div>
+                `;
+        } else {
+          li.innerHTML = `
+                <div class="liclass" id=d`+ j + `>
+                    <label id=l`+ j + ` ><input  id=i` + j + ` type="checkbox"><i id="` + j + `" class="spot"></i>` + item[j] + `</label>
+                    <textarea onblur="hideText(1,`+ j + `)" id=t` + j + `>` + item[j] + `</textarea>
+                    <button id=`+ j + ` class="delete" >x</button>
+                </div>
+                `;
+          i++;
+        }
+        content.appendChild(li);
+        if (item[j].startsWith("true")) {
+          let a = document.getElementById(j);
+          a.style.color = "#d9d9d9";
+          a.style.textDecoration = "line-through";
+          a.style.background='url("./img/todomvc/checked.png") no-repeat';
+          a.style.background='url("..")'
+          document.getElementById("clearAll").style.visibility = "visible";
+        }
+      }
+      let size = document.getElementsByClassName('liclass').length;
+      if(i===0){
+        document.getElementById("context").style.color="rgb(115, 115, 115)";
+      }
+      if (size > 0) {
+        document.getElementsByClassName("footer")[0].style.visibility = "visible";
+        document.getElementsByClassName("bottom")[0].style.visibility = "visible";
+        document.getElementsByClassName("bottom")[1].style.visibility = "visible";
+        document.getElementsByClassName("context")[0].style.visibility = "visible";
+      }
+      document.getElementById("strong").innerText = i;
+    }
+  };
+  //向列表框添加新的一行
+  function addTodo() {
+    let text = document.getElementById('eventName').value;
+    let content = document.getElementById('content');
+    if (13 == event.keyCode && text.trim() === "") {
+      for (let k = 0; k <= j; k++) {
+        if (document.getElementsByTagName("textarea")[k])
+          hideText(13,k);
+      }
+    }else if (27 == event.keyCode && text.trim() === "") {
+      for (let k = 0; k <= j; k++) {
+        if (document.getElementsByTagName("textarea")[k])
+          hideText(27,k);
+      }
+    }
+    if (13 == event.keyCode && text.trim() !== "") {
+      let li = document.createElement("li");
+      j++;
+      i++;
+      li.innerHTML = `
+            <div class="liclass" id=d`+ j + `>
+                <label id=l`+ j + `><input  id=i` + j + ` type="checkbox"><i id="` + j + `" class="spot"></i>` + text + `</label>
+                <textarea onblur="hideText(1,`+ j + `)"  id=t` + j + `>` + text + `</textarea>
+                <button id=`+ j + ` class="delete" >x</button>
+            </div>
+        `;
+      content.appendChild(li);
+      if (sign.toUpperCase() === "completed".toUpperCase()) {
+        li.style.display = "none";
+      }
+      arr.push(text)
+      document.getElementById("strong").innerText = i;
+      document.getElementById('eventName').value = "";
+      localStorage.setItem("temp", arr);
+      if (i > 0) {
+        document.getElementsByClassName("footer")[0].style.visibility = "visible";
+        document.getElementsByClassName("bottom")[0].style.visibility = "visible";
+        document.getElementsByClassName("bottom")[1].style.visibility = "visible";
+        document.getElementsByClassName("context")[0].style.visibility = "visible";
+      }
+    }
+  };
+
+  //全选或反选
+  function alterAll() {
+    if (flag) {
+      for (let k = 0; k <= j; k++) {
+        let a = document.getElementById("l"+k);
+        let b = document.getElementById("i" + k);
+        if (a != null) {
+          if (b.checked) {
+            a.style.color = "#000";
+            a.style.textDecoration = "";
+            let c = document.getElementById("l"+k).innerText.trim();
+            arr.splice(arr.indexOf("true" + c), 1, c);
+            localStorage.setItem("temp", arr);
+            b.checked = false;
+          }
+        }
+      }
+      document.getElementById("clearAll").style.visibility = "hidden";
+      document.getElementById("strong").innerText = j;
+      i = j;
+      document.getElementById("context").style.color = "#e6e6e6";
+      flag = false;
+    } else {
+      for (let k = 0; k <= j; k++) {
+        let a = document.getElementById("l"+k);
+        let b = document.getElementById("i" + k);
+        if (a != null) {
+          if (!b.checked) {
+            a.style.color = "#d9d9d9";
+            a.style.textDecoration = "line-through";
+            let c = document.getElementById("l"+k).innerText.trim();
+            arr.splice(arr.indexOf(c), 1, "true" + c);
+            localStorage.setItem("temp", arr);
+            b.checked = true;
+          }
+        }
+      }
+      document.getElementById("clearAll").style.visibility = "visible";
+      document.getElementById("strong").innerText = 0;
+      i = 0;
+      document.getElementById("context").style.color = "#737373";
+      flag = true;
+    }
+  };
+
+  //修改某行内容
+  function alterItem() {
+    if (event.target.tagName.toLowerCase() === "div"||event.target.tagName.toLowerCase() === "label") {
+      let item = event.target.id.substring(1,2);
+      document.getElementById("l"+item).style.display = "none";
+      document.getElementById("t" + item).style.display = "block";
+      let text=document.getElementById("t" + item);
+      let len=text.value.length;
+      text.setSelectionRange(len,len);
+      text.focus();
+    }
+
+  };
+  //修改完成 隐藏输入框
+  function hideText(number,item) {
+    if(27 == number){
+      for(let k=0;k<j;k++){
+        let text=document.getElementById("l" + k).innerText.trim();
+        document.getElementById("l"+k).style.display = "block";
+        document.getElementById("t" + k).style.display = "none";
+        document.getElementById("t"+k).value=text;
+      }
+    }else{
+      document.getElementById("t" + item).style.display = "none";
+      let text = document.getElementById("t" + item).value;
+      let c = document.getElementById("l"+item).innerText.trim();
+      let b = document.getElementById("i" + item);
+      if (b.checked) {
+        if(text.trim()==""){
+          arr.splice(arr.indexOf("true"+c), 1);
+          document.getElementById("d"+item).parentNode.parentNode.removeChild(document.getElementById("d"+item).parentNode);
+        }
+        else{
+          document.getElementById("l"+item).parentNode.innerHTML = `
+                <label id=l`+ item + ` style="text-decoration: line-through;color: rgb(217, 217, 217);"><input id=i` + item + ` type="checkbox" checked="checked"><i style='background:url("./img/todomvc/checked.png") no-repeat' id="` + j + `" class="spot"></i>` + text + `</label>
+                    <textarea onblur="hideText(1,`+ item + `)"  id=t` + item + `>` + text + `</textarea>
+                <button id=`+ j + ` class="delete">x</button>
+                `
+          arr.splice(arr.indexOf("true"+c), 1, "true"+text);
+        }
+      } else {
+        if(text.trim()==""){
+          arr.splice(arr.indexOf(c), 1);
+          document.getElementById("d"+item).parentNode.parentNode.removeChild(document.getElementById("d"+item).parentNode);
+        }else{
+          document.getElementById("l"+item).parentNode.innerHTML = `
+                <label id=l`+ item + `><input id=i` + item + ` type="checkbox"><i style='background:url("./img/todomvc/radio.png") no-repeat' id="` + j + `" class="spot"></i>` + text + `</label>
+                    <textarea onblur="hideText(1,`+ item + `)"  id=t` + item + `>` + text + `</textarea>
+                <button id=`+ j + ` class="delete"">x</button>
+                `
+          arr.splice(arr.indexOf(c), 1, text);
+        }
+      }
+      localStorage.setItem("temp", arr);
+    }
+  };
+  //修改某行状态
+  function alterEvent() {
+    if (event.target.tagName.toLowerCase() === "i") {
+      let item = event.target.id;
+      let a = document.getElementById("l"+item);
+      let b = document.getElementById("i" + item);
+      if (b.checked) {
+        a.style.color = "#000";
+        a.style.textDecoration = "";
+        i++;
+        document.getElementById("strong").innerText = i;
+        let c = document.getElementById("l"+item).innerText.trim();
+        document.getElementById(item).style.background='url("./img/todomvc/radio.png") no-repeat';
+        arr.splice(arr.indexOf("true" + c), 1, c);
+        localStorage.setItem("temp", arr);
+      } else {
+        a.style.color = "#d9d9d9";
+        a.style.textDecoration = "line-through";
+        document.getElementById(item).style.background='url("./img/todomvc/checked.png") no-repeat';
+        i--;
+        document.getElementById("clearAll").style.visibility = "visible";
+        document.getElementById("strong").innerText = i;
+        let c = document.getElementById("l"+item).innerText.trim();
+        arr.splice(arr.indexOf(c), 1, "true" + c);
+        localStorage.setItem("temp", arr);
+
+      }
+      if(i>0){
+        document.getElementById("content").style.color = "#e6e6e6";
+      }else{
+        document.getElementById("content").style.color = "#373737";
+      }
+      let size = document.getElementsByClassName('liclass').length;
+      if(i==size){
+        document.getElementById("clearAll").style.visibility = "hidden";
+      }
+    }else if (event.target.tagName.toLowerCase() === "label"){
+      let item = event.target.id.substring(1,2);
+      if(document.getElementById("i" + item).checked){
+        document.getElementById("i" + item).checked=false;
+      }else{
+        document.getElementById("i" + item).checked=true;
+      }
+    }
+  };
+  //删除某行
+  function deleteItem() {
+    if (event.target.tagName.toLowerCase() === "button") {
+      let item = event.target.id;
+      let a = document.getElementById("l"+item);
+      let b = document.getElementById("i" + item);
+      let c = document.getElementById("l"+item).innerText.trim();
+      if (a != null) {
+        if (!b.checked) {
+          i--;
+          document.getElementById("strong").innerText = i;
+          arr.splice(arr.indexOf(c), 1);
+        } else {
+          document.getElementById("strong").innerText = i;
+          arr.splice(arr.indexOf("true"+c), 1);
+        }
+
+        a.parentNode.parentNode.parentNode.removeChild(a.parentNode.parentNode);
+        let size = document.getElementsByClassName('liclass').length;
+        if (size <= 0) {
+          document.getElementsByClassName("footer")[0].style.visibility = "hidden";
+          document.getElementsByClassName("bottom")[0].style.visibility = "hidden";
+          document.getElementsByClassName("bottom")[1].style.visibility = "hidden";
+          document.getElementById("clearAll").style.visibility = "hidden";
+          document.getElementsByClassName("content")[0].style.visibility = "hidden";
+        }
+
+        localStorage.setItem("temp", arr);
+      }
+    }
+  };
+  
+  function getAll() {
+    sign = window.event.target.innerText;
+    for (let k = 0; k <= j; k++) {
+      let a = document.getElementById("l"+k);
+      if (a != null) {
+        a.parentNode.parentNode.style.display = "block";
+      }
+
+    }
+  };
+  
+  function getActive() {
+    sign = window.event.target.innerText;
+    for (let k = 0; k <= j; k++) {
+      let a = document.getElementById("l"+k);
+      let b = document.getElementById("i" + k);
+      if (a != null) {
+        if (b.checked) {
+          a.parentNode.parentNode.style.display = "none";
+        } else {
+          a.parentNode.parentNode.style.display = "block";
+        }
+      }
+    }
+  };
+  
+  function getCompleted() {
+    sign = window.event.target.innerText;
+    for (let k = 0; k <= j; k++) {
+      let a = document.getElementById('l'+k);
+      let b = document.getElementById("i" + k);
+      if (a != null) {
+        if (b.checked) {
+          a.parentNode.parentNode.style.display = "block";
+        } else {
+          a.parentNode.parentNode.style.display = "none";
+        }
+      }
+    }
+  };
+  
+  function clearCompleted() {
+    for (let k = 0; k <= j; k++) {
+      let a = document.getElementById("l"+k);
+      let b = document.getElementById("i" + k);
+      if (a != null) {
+        if (b.checked) {
+          let c = document.getElementById("l"+k).innerText.trim();
+          a.parentNode.parentNode.parentNode.removeChild(a.parentNode.parentNode);
+          arr.splice(arr.indexOf("true" + c), 1);
+          localStorage.setItem("temp", arr);
+        }
+      }
+    }
+    document.getElementById("clearAll").style.visibility = "hidden";
+    let size = document.getElementsByClassName('liclass').length;
+    if (size <= 0) {
+      document.getElementsByClassName("footer")[0].style.visibility = "hidden";
+      document.getElementsByClassName("bottom")[0].style.visibility = "hidden";
+      document.getElementsByClassName("bottom")[1].style.visibility = "hidden";
+      document.getElementById("clearAll").style.visibility = "hidden";
+      document.getElementsByClassName("content")[0].style.visibility = "hidden";
+      document.getElementById("content").style.color = "#e6e6e6";
+      i = 0; j = -1; flag = false;
+    }
+
+  };
+</script>
+</body>
+</html>
